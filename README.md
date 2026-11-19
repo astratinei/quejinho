@@ -21,7 +21,7 @@ After the first visit it works without internet.
 ## Notes
 
 - Progress and your notebook are saved on the phone itself. Clearing browser data removes them.
-- Translation works fully offline. Whole phrases and sentences use a small translation model that runs on the phone (about 35 MB, saved the first time you open the app with internet). The first translation in a session takes a few seconds to wake it up. It can lean toward European Portuguese, so check it against the phrasebook.
+- Translation works fully offline. Whole phrases and sentences use a small translation model that runs on the phone (about 70 MB for both directions, saved the first time you open the app with internet). The first translation in a session takes a few seconds to wake it up. It can lean toward European Portuguese, so check it against the phrasebook.
 - If the models are missing, the app falls back to the built-in phrasebook, a small word list and, when online, the free MyMemory service.
 - Credits: the translation models and the in-browser engine come from Mozilla's Firefox Translations project and the Bergamot project (see their repositories for licenses).
 - If you change any file, bump `V` in `sw.js` so phones pick up the new version.
