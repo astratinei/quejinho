@@ -1034,8 +1034,10 @@ async function lookup(q){
     const d=dictLookup(q,dir);
     if(d)return {pt:d.pt,en:d.en,label:"From the offline word list"};
   }
+  const m=await mtTranslate(q,dir);
+  if(m)return dir==="en"?{pt:m,en:q,label:MT_LABEL}:{pt:q,en:m,label:MT_LABEL};
   let tried=false;
-  if(navigator.onLine!==false){
+  if(MT.has===false&&navigator.onLine!==false){
     tried=true;
     const t=await onlineTranslate(q,dir);
     if(t)return dir==="en"?{pt:t,en:q,label:"Online translation. Double-check it before you rely on it."}:{pt:q,en:t,label:"Online translation. Double-check it before you rely on it."};
@@ -1045,21 +1047,46 @@ async function lookup(q){
   if(gloss.length)return {gloss,note:tried?"I couldn't reach the online translator. Here is what I know word by word:":"You're offline, so I can't do whole sentences. Here is what I know word by word:"};
   return {none:true};
 }
+const MT={has:undefined,t:null};
+const MT_LABEL="Offline translator. It can lean toward European Portuguese, so check it against the phrasebook.";
+async function mtTranslate(q,dir){
+  if(MT.has===false)return null;
+  try{
+    if(MT.has===undefined){
+      const r=await fetch("models/registry.json");
+      if(!r.ok){MT.has=false;return null;}
+      await r.clone().json();
+      MT.has=true;
+    }
+    if(!MT.t){
+      const m=await import("./vendor/bergamot/translator.js");
+      MT.t=new m.LatencyOptimisedTranslator({registryUrl:"models/registry.json",pivotLanguage:null,downloadTimeout:0,onerror:e=>console.error(e)});
+    }
+    const r=await MT.t.translate({from:dir==="en"?"en":"pt",to:dir==="en"?"pt":"en",text:q,html:false});
+    const t=((r&&r.target&&r.target.text)||"").trim();
+    return t||null;
+  }catch(e){
+    console.error(e);
+    if(MT.has===undefined)MT.has=false;
+    MT.t=null;
+    return null;
+  }
+}
 let trToken=0;
 async function doTranslate(){
   const el=document.getElementById("trq");
   const q=(el?el.value:tr.q).trim();tr.q=q;
   if(!q){tr.res=null;render();return;}
   const my=++trToken;
-  tr.res={loading:true};render();
+  tr.res={loading:true,first:MT.has!==false&&!MT.t};render();
   const r=await lookup(q);
   if(my!==trToken)return;
   tr.res=r;render();
 }
 function resHTML(){
   const r=tr.res;if(!r)return "";
-  if(r.loading)return `<div class="card res" aria-live="polite"><div class="sub">Traduzindo…</div></div>`;
-  if(r.none)return `<div class="card res" aria-live="polite"><b>Hmm, I don't know that one offline.</b><p class="sub">Without internet I only know my phrasebook and a small word list. Connect to translate anything, or use "Add your own" below.</p></div>`;
+  if(r.loading)return `<div class="card res" aria-live="polite"><div class="sub">${r.first?"Waking up the offline translator. The first one takes a few seconds, then it is quick.":"Traduzindo…"}</div></div>`;
+  if(r.none)return `<div class="card res" aria-live="polite"><b>Hmm, I don't know that one offline.</b><p class="sub">I couldn't translate that. You can use "Add your own" below to save it yourself.</p></div>`;
   if(r.gloss)return `<div class="card res" aria-live="polite"><div class="srcl">${esc(r.note)}</div><ul class="gloss">${r.gloss.map(g=>`<li><b>${esc(g.w)}</b><span>${esc(g.m)}</span></li>`).join("")}</ul></div>`;
   const saved=S.notes.some(n=>norm(n.pt)===norm(r.pt));
   return `<div class="card res" aria-live="polite"><div class="srcl">${esc(r.label)}</div>
