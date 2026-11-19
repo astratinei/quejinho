@@ -1060,9 +1060,12 @@ async function mtTranslate(q,dir){
     }
     if(!MT.t){
       const m=await import("./vendor/bergamot/translator.js");
-      MT.t=new m.LatencyOptimisedTranslator({registryUrl:"models/registry.json",pivotLanguage:null,downloadTimeout:0,onerror:e=>console.error(e)});
+      MT.t=new m.LatencyOptimisedTranslator({registryUrl:"models/registry.json",pivotLanguage:null,downloadTimeout:0});
     }
-    const r=await MT.t.translate({from:dir==="en"?"en":"pt",to:dir==="en"?"pt":"en",text:q,html:false});
+    const r=await Promise.race([
+      MT.t.translate({from:dir==="en"?"en":"pt",to:dir==="en"?"pt":"en",text:q,html:false}),
+      new Promise((_,rej)=>setTimeout(()=>rej(new Error("The offline translator took too long.")),90000))
+    ]);
     const t=((r&&r.target&&r.target.text)||"").trim();
     return t||null;
   }catch(e){
