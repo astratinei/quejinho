@@ -19,7 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Download the offline translation models
-        run: bash scripts/fetch-models.sh
+        run: |
+          pip install zstandard
+          python3 scripts/fetch_models.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
