@@ -1,0 +1,24 @@
+name: Browser test
+on:
+  push:
+    branches: [debug]
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          pip install zstandard
+          python3 scripts/fetch_models.py
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: |
+          npm i --no-save playwright@1.49.1
+          npx playwright install --with-deps chromium
+      - run: |
+          python3 -m http.server 8080 >/dev/null 2>&1 &
+          sleep 2
+          MODE=nosw node test/e2e.js || true
+          echo ======== WITH SERVICE WORKER
+          MODE=sw node test/e2e.js || true
